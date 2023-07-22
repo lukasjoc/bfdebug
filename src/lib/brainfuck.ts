@@ -76,19 +76,30 @@ export class BrainfuckStdout {
     }
 }
 
-export const sharedStdout = writable(new BrainfuckStdout());
-
 class MissingTokensError extends Error {
     public message = 'Missing tokens. Please tokenize first!';
 }
 
 export default class Brainfuck {
     private tokens: Token[] | null = null;
-    private tape: number[] | null = null;
-    constructor(public source: string) {
-        this.source = source;
-        this.tokens = Brainfuck.tokenize(source);
-        this.tape = null;
+    private tape: number[] = new Array(30_000).fill(0);
+    private ptr: number = 0;
+
+    public resetTape() {
+        this.ptr = 0;
+        this.tape = this.tape.fill(0);
+    }
+
+    public getTape() {
+        return this.tape;
+    }
+
+    public getPtr() {
+        return this.ptr;
+    }
+
+    public getValueAtPtr() {
+        return this.tape[this.ptr];
     }
 
     private buildJumpTable(): JumpTable {
@@ -128,36 +139,35 @@ export default class Brainfuck {
         return source.split('').map(charToToken);
     }
 
-    evaluate() {
+    evaluate(source: string) {
+        this.tokens = Brainfuck.tokenize(source);
         if (!this.tokens?.length) {
             throw new MissingTokensError();
         }
-        this.tape = new Array(30_000).fill(0);
         const table = this.buildJumpTable();
         let iter = 0;
-        let ptr = 0;
         while (iter < this.tokens.length) {
             const token = this.tokens[iter];
             switch (token) {
             case Inc:
-                this.tape[ptr]++;
+                this.tape[this.ptr]++;
                 break;
             case Dec:
-                this.tape[ptr]--;
+                this.tape[this.ptr]--;
                 break;
             case Left:
-                ptr--;
+                this.ptr--;
                 break;
             case Right:
-                ptr++;
+                this.ptr++;
                 break;
             case LoopStart:
-                if (this.tape[ptr] === 0) {
+                if (this.tape[this.ptr] === 0) {
                     iter = table[iter];
                 }
                 break;
             case LoopEnd:
-                if (this.tape[ptr] !== 0) {
+                if (this.tape[this.ptr] !== 0) {
                     iter = table[iter];
                 }
                 break;
@@ -167,12 +177,12 @@ export default class Brainfuck {
                 if (Number.isNaN(n)) {
                     throw new Error('Invalid input! Expected numeric got alphabetic.');
                 }
-                this.tape[ptr] = n;
+                this.tape[this.ptr] = n;
                 break;
             }
             case Print: {
-                sharedStdout.update((stdout) => {
-                    stdout.push(this.tape![ptr]);
+                stdout.update((stdout) => {
+                    stdout.push(this.tape[this.ptr]);
                     return stdout;
                 });
                 break;
@@ -184,3 +194,6 @@ export default class Brainfuck {
         }
     }
 }
+
+export const stdout = writable(new BrainfuckStdout());
+export const brainfuck = writable(new Brainfuck());

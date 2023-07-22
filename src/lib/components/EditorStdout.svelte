@@ -1,19 +1,11 @@
 <script lang="ts">
-    import type { Line } from '$lib/brainfuck';
     import '$lib/global.css';
-    import { sharedStdout } from '$lib/brainfuck';
-    import { onDestroy } from 'svelte';
-
-    let lines: Readonly<Line[]> = [];
-    const stop = sharedStdout.subscribe((stdout) => {
-        lines = stdout?.lines() ?? [];
-    });
-    onDestroy(stop);
+    import { stdout } from '$lib/brainfuck';
 </script>
 
 <div class="stdout">
     <table>
-        {#each lines as line, nr}
+        {#each $stdout.lines() as line, nr}
             <tr>{nr + 1} {line}</tr>
         {/each}
     </table>
@@ -38,7 +30,7 @@
     tr {
         width: 100%;
         font-size: 12px;
-        font-family: 'Ubuntu Mono', monospace;
+        font-family: "Ubuntu Mono", monospace;
         border: var(--border-primary);
     }
 </style>

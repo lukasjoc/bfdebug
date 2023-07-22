@@ -5,6 +5,7 @@
     --primary: #bbb;
     --seconday: #aaa;
     --border-default: 1px solid #aaa;
+    --signal-red: #fe8888;
 }
 
 /** Grid Minimal grid system with auto-layout columns */
@@ -36,3 +37,15 @@
     background-color: var(--primary);
     width: 100%;
 }
+
+.ace_gutter-cell {
+    cursor: pointer;
+}
+
+.ace_gutter-cell:hover {
+    box-shadow: 0px 0px 2px 2px var(--primary) inset;
+}
+.ace_gutter-cell.ace_breakpoint  {
+    box-shadow: 0px 0px 2px 2px var(--signal-red) inset;
+}
+
