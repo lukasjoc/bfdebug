@@ -1,12 +1,14 @@
-const Inc = "Inc" as const
-const Dec = "Dec" as const
-const Left = "Left" as const
-const Right = "Right" as const
-const Print = "Print" as const
-const Input = "Input" as const
-const LoopStart = "LoopStart" as const
-const LoopEnd = "LoopEnd" as const
-const Ignored = "Ignored" as const
+import { writable } from 'svelte/store';
+
+const Inc = 'Inc' as const;
+const Dec = 'Dec' as const;
+const Left = 'Left' as const;
+const Right = 'Right' as const;
+const Print = 'Print' as const;
+const Input = 'Input' as const;
+const LoopStart = 'LoopStart' as const;
+const LoopEnd = 'LoopEnd' as const;
+const Ignored = 'Ignored' as const;
 
 type Token =
     | typeof Inc
@@ -17,22 +19,67 @@ type Token =
     | typeof Input
     | typeof LoopStart
     | typeof LoopEnd
-    | typeof Ignored
+    | typeof Ignored;
 
 type JumpTable = { [key: number]: number };
 
 function charToToken(char: string): Token {
     switch (char) {
-        case '+': return Inc
-        case '-': return Dec
-        case '<': return Left
-        case '>': return Right
-        case '[': return LoopStart
-        case ']': return LoopEnd
-        case ',': return Input
-        case '.': return Print
+    case '+':
+        return Inc;
+    case '-':
+        return Dec;
+    case '<':
+        return Left;
+    case '>':
+        return Right;
+    case '[':
+        return LoopStart;
+    case ']':
+        return LoopEnd;
+    case ',':
+        return Input;
+    case '.':
+        return Print;
     }
-    return Ignored
+    return Ignored;
+}
+export type Line = string;
+export class BrainfuckStdout {
+    private internalLines: Line[] = [''];
+
+    lines(): Readonly<Line[]> {
+        return this.internalLines;
+    }
+
+    length() {
+        return this.internalLines.length;
+    }
+
+    push(code: number) {
+        const char = String.fromCharCode(code);
+        //  LF,            CR
+        if (code === 10 || code === 13) {
+            this.internalLines.push(char);
+        }
+        // non-printables
+        else if (code < 32) {
+            this.internalLines[this.length() - 1] += 'N';
+        } else {
+            this.internalLines[this.length() - 1] += char;
+        }
+    }
+
+    clear() {
+        this.internalLines[0] = '';
+        this.internalLines.splice(1, this.length());
+    }
+}
+
+export const sharedStdout = writable(new BrainfuckStdout());
+
+class MissingTokensError extends Error {
+    public message = 'Missing tokens. Please tokenize first!';
 }
 
 export default class Brainfuck {
@@ -40,13 +87,13 @@ export default class Brainfuck {
     private tape: number[] | null = null;
     constructor(public source: string) {
         this.source = source;
-        this.tokens = Brainfuck.tokenize(source)
+        this.tokens = Brainfuck.tokenize(source);
         this.tape = null;
     }
 
     private buildJumpTable(): JumpTable {
         if (!this.tokens?.length) {
-            throw new Error("Missing tokens. Please tokenize first!")
+            throw new MissingTokensError();
         }
         const table: JumpTable = {};
         const levels: number[] = [];
@@ -54,22 +101,22 @@ export default class Brainfuck {
         let iter = 0;
         for (const token of this.tokens) {
             switch (token) {
-                case LoopStart: {
-                    levels.push(iter);
-                    break;
+            case LoopStart: {
+                levels.push(iter);
+                break;
+            }
+            case LoopEnd: {
+                const last = levels.pop();
+                if (last !== undefined) {
+                    table[last] = iter;
+                    table[iter] = last;
+                } else {
+                    throw new Error(`Unclosed loop token before: ${iter}`);
                 }
-                case LoopEnd: {
-                    const last = levels.pop();
-                    if (last !== undefined) {
-                        table[last] = iter;
-                        table[iter] = last;
-                    } else {
-                        throw new Error(`Unclosed loop token before: ${iter}`);
-                    }
-                    break;
-                }
-                default:
-                    break;
+                break;
+            }
+            default:
+                break;
             }
             iter++;
         }
@@ -78,59 +125,62 @@ export default class Brainfuck {
     }
 
     private static tokenize(source: string): Token[] {
-        return source.split('').map(charToToken)
+        return source.split('').map(charToToken);
     }
 
-    evaluate(): string[] {
+    evaluate() {
         if (!this.tokens?.length) {
-            throw new Error("Missing tokens. Please tokenize first!")
+            throw new MissingTokensError();
         }
         this.tape = new Array(30_000).fill(0);
-        const table = this.buildJumpTable()
-        const stdout = [""]
+        const table = this.buildJumpTable();
         let iter = 0;
-        let ptr = 0
+        let ptr = 0;
         while (iter < this.tokens.length) {
             const token = this.tokens[iter];
             switch (token) {
-                case Inc: this.tape[ptr]++; break;
-                case Dec: this.tape[ptr]--; break;
-                case Left: ptr--; break;
-                case Right: ptr++; break;
-                case LoopStart:
-                    if (this.tape[ptr] === 0) {
-                        iter = table[iter];
-                    }
-                    break;
-                case LoopEnd:
-                    if (this.tape[ptr] !== 0) {
-                        iter = table[iter];
-                    }
-                    break;
-                case Input: {
-                    const r = prompt()
-                    const rn = Number(r)
-                    if (Number.isNaN(rn)) {
-                        throw new Error("numeric input expected")
-                    }
-                    this.tape[ptr] = rn;
-                    break;
+            case Inc:
+                this.tape[ptr]++;
+                break;
+            case Dec:
+                this.tape[ptr]--;
+                break;
+            case Left:
+                ptr--;
+                break;
+            case Right:
+                ptr++;
+                break;
+            case LoopStart:
+                if (this.tape[ptr] === 0) {
+                    iter = table[iter];
                 }
-                case Print: {
-                    const value = this.tape[ptr];
-                    const valueAsChar = String.fromCharCode(value)
-                    if (value === 10 || value === 13) {
-                        stdout.push(valueAsChar)
-                    } else {
-                        stdout[stdout.length - 1] += valueAsChar
-                    }
-                    break;
+                break;
+            case LoopEnd:
+                if (this.tape[ptr] !== 0) {
+                    iter = table[iter];
                 }
-                default:
+                break;
+            case Input: {
+                const r = prompt();
+                const n = Number(r);
+                if (Number.isNaN(n)) {
+                    throw new Error('Invalid input! Expected numeric got alphabetic.');
+                }
+                this.tape[ptr] = n;
+                break;
+            }
+            case Print: {
+                sharedStdout.update((stdout) => {
+                    stdout.push(this.tape![ptr]);
+                    return stdout;
+                });
+                break;
+            }
+            default:
                 /* ignored text */
             }
             iter++;
         }
-        return stdout;
     }
 }

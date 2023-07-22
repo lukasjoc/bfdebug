@@ -11,3 +11,4 @@ static/*
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+vite.config.ts.timestamp*
