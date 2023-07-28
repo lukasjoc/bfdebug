@@ -1,3 +1,4 @@
+import type { Editor } from 'brace';
 import { writable } from 'svelte/store';
 
 const Inc = 'Inc' as const;
@@ -74,6 +75,132 @@ export class BrainfuckStdout {
         this.internalLines[0] = '';
         this.internalLines.splice(1, this.length());
     }
+}
+
+export class BrainfuckDebugger {
+    private row: number = 0;
+    private col: number = -1;
+    private active: number = -1;
+    private debugging: boolean = false;
+    private current: number = -1;
+    breakpoints: number[];
+    bf: Brainfuck;
+    editor: Editor | null;
+
+    constructor(bf: Brainfuck, editor: Editor | null, breakpoints: number[]) {
+        this.bf = bf;
+        this.editor = editor;
+        this.breakpoints = breakpoints;
+    }
+    run() {
+        if (!this.editor) {
+            throw new Error('missing required dependency `editor`.');
+        }
+        // TODO: clear stdout
+        // this.stdout.clear();
+        this.bf.resetTape();
+        this.bf.evaluate(this.editor.getValue());
+    }
+
+    enable() {
+        if (!this.editor) {
+            throw new Error('missing required dependency `editor`.');
+        }
+        this.debugging = true;
+        console.log('[manager/enable]: ', this);
+        this.editor.moveCursorTo(0, 0, true);
+        this.editor.setReadOnly(true);
+        this.bf.resetTape();
+    }
+
+    isEnabled() {
+        return this.debugging && this.editor?.getReadOnly();
+    }
+
+    disable() {
+        if (!this.editor) {
+            throw new Error('missing required dependency `editor`.');
+        }
+        console.log('[manager/disable]: ', this);
+        this.debugging = false;
+        this.editor.setReadOnly(false);
+    }
+
+    next() {
+        if (this.debugging === false) {
+            return;
+        }
+        if (this.current + 2 > this.breakpoints.length) {
+            this.disable();
+            throw new Error('breakpoints exhausted');
+        }
+
+        this.current += 1;
+        this.active = this.breakpoints[this.current];
+        this.row = this.active;
+
+        this.editor?.moveCursorTo(this.row, 0, true);
+        const prevProgram = this.editor?.session
+            .getLines(0, this.row - 1)
+            .join('\n');
+
+        console.log('[manager/next]: ', prevProgram);
+
+        if (prevProgram) {
+            // TODO: clear stdout
+            this.bf?.resetTape();
+            this.bf?.evaluate(prevProgram);
+        }
+    }
+
+    prev() {
+        if (this.debugging === false) {
+            return;
+        }
+        if (this.current < 1) {
+            throw new Error('breakpoints exhausted');
+        }
+
+        this.current -= 1;
+        this.active = this.breakpoints[this.current];
+        this.row = this.active;
+
+        this.editor?.moveCursorTo(this.row, 0, true);
+        const prevProgram = this.editor?.session
+            .getLines(0, Math.max(0, this.row - 1))
+            .join('\n');
+
+        console.log('[manager/prev]: ', prevProgram);
+
+        if (prevProgram) {
+            this.bf?.resetTape();
+            this.bf?.evaluate(prevProgram);
+        }
+    }
+
+    getCurrent() {
+        return this.active;
+    }
+
+    stepNext() {
+        if (this.active === -1) {
+            throw new Error('stepping is only supported within a breakpoint.'
+             + 'Use `next` to jump to the next breakpoint. ');
+        }
+        // TODO: wrap around to next line when reached EOL
+        // move one char to the right and execute all from start of the progoram
+        // to the char
+        this.col += 1;
+        this.editor?.moveCursorToPosition({ row: this.row, column: this.col + 1 });
+        const line = this.editor?.session.getLine(this.row);
+        const char = line?.at(this.col);
+        console.log('[manager/stepnext]: ', char);
+        if (char) {
+            this.bf.evaluate(char);
+        }
+    }
+
+    stepPrev() { console.info('TODO: not implemented'); }
 }
 
 class MissingTokensError extends Error {

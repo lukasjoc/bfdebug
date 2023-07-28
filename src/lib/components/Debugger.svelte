@@ -1,9 +1,8 @@
 <script lang="ts">
     import '$lib/global.css';
-    import { editor, debuggerState } from '$lib/stores/editor';
+    import { manager } from '$lib/stores/editor';
     import type { Editor, Position } from 'brace';
     import { onDestroy } from 'svelte';
-    import {brainfuck} from '$lib/brainfuck';
 
     function setBreakpoint(event: {
         domEvent: MouseEvent;
@@ -27,31 +26,29 @@
         }
 
         // meh dont want to shuffle arrays today ^^
-        $debuggerState.breakpoints.splice(0, $debuggerState.breakpoints.length);
+        $manager.breakpoints = [];
         for (const i in bpts) {
             const ni = Number(i);
             if (bpts[ni] !== undefined) {
-                $debuggerState.breakpoints.push(ni);
+                $manager.breakpoints.push(ni);
             }
         }
-        $debuggerState.breakpoints = $debuggerState.breakpoints;
         event.stop();
     }
 
-    const stop = editor.subscribe((e) => {
-        e?.on('guttermousedown', setBreakpoint);
-    });
-
-    onDestroy(stop);
+    const managerSubscription = manager.subscribe(
+        m => m?.editor?.on('guttermousedown', setBreakpoint)
+    );
+    onDestroy(managerSubscription);
 </script>
 
 <div class="box debugger">
     <div>
-        {#if $debuggerState.breakpoints.length}
-            all: {$debuggerState.breakpoints.join(', ')}
+        {#if $manager.breakpoints.length}
+            all: {$manager.breakpoints.join(', ')}
             <br />
-            {#if $debuggerState.debugging}
-                current: {$debuggerState.current}/{$debuggerState.breakpoints[$debuggerState.current]}
+            {#if $manager.isEnabled()}
+                current: {$manager.getCurrent()}
             {/if}
         {:else}
             Set a breakpoint to debug

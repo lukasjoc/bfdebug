@@ -7,22 +7,20 @@
     import EditorToolbar from './EditorToolbar.svelte';
     import EditorStdout from './EditorStdout.svelte';
     import Debugger from './Debugger.svelte';
-    import { editor } from '$lib/stores/editor';
+    import { manager } from '$lib/stores/editor';
 
     let editorEl: HTMLDivElement | null = null;
     onMount(() => {
         if (!editorEl) {
             return;
         }
-        $editor = ace.edit(editorEl);
-        $editor.setHighlightActiveLine(true);
-        $editor.setOption('autoScrollEditorIntoView', true);
-        $editor.setOption('copyWithEmptySelection', true);
-        $editor.setShowPrintMargin(false);
-        $editor.setKeyboardHandler('ace/keyboard/vim');
-
-        // TODO: set to readonly when in debug mode
-        // editor.setReadOnly(true);  // false to make it editable
+        $manager.editor = ace.edit(editorEl);
+        $manager.editor = ace.edit(editorEl);
+        $manager.editor.setHighlightActiveLine(true);
+        $manager.editor.setOption('autoScrollEditorIntoView', true);
+        $manager.editor.setOption('copyWithEmptySelection', true);
+        $manager.editor.setShowPrintMargin(false);
+        $manager.editor.setKeyboardHandler('ace/keyboard/vim');
 
         // TODO: Example Programs Dropdown
         // $editor.setValue(
@@ -34,19 +32,20 @@
         //         '+++.>>.<-.<.+++.------.--------.>>+.>++\n' +
         //         '\n. print last newline'
         // );
-        $editor.setValue('+++\n' + '.+\n' + '++--\n');
+        $manager.editor.setValue('+++\n' + '.+\n' + '++--\n');
 
         // TODO: write a brainfuck mode
-        const session = $editor.getSession();
+        const session = $manager.editor.getSession();
         session.setMode('ace/mode/text');
         session.setTabSize(4);
         session.setUseWrapMode(true);
     });
 
     onDestroy(() => {
-        if ($editor) {
-            $editor.destroy();
-            $editor.container.remove();
+        // TODO: would it make sense to have a destroy on the manager?
+        if ($manager.editor) {
+            $manager.editor.destroy();
+            $manager.editor.container.remove();
         }
     });
 </script>
