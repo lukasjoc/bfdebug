@@ -11,16 +11,16 @@
     <button on:click={() => $debuggerInstance.run()}>
         <img height="20" width="20" src={IconRefresh} alt="refresh" /> Run
     </button>
-    <button>
+    <button on:click={() => $debuggerInstance.enable()}>
         <img height="20" width="20" src={IconDebuggerStart} alt="debugger-start" /> Start Debugger
     </button>
-    <button  disabled>
+    <button  on:click={() => $debuggerInstance.prev()}>
         <img height="20" width="20" src={IconArrowTop} alt="arrow-top" /> Prev
     </button>
-    <button  disabled>
+    <button  on:click={() => $debuggerInstance.next()}>
         <img height="20" width="20" src={IconArrowBottom} alt="arrow-bottom" />Next
     </button>
-    <button  disabled>
+    <button  on:click={() => $debuggerInstance.stepNext()}>
         <img height="20" width="20" src={IconArrowRightSide} alt="arrow-right-side" /> Step
     </button>
 </section>
