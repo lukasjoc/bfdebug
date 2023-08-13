@@ -1,67 +1,84 @@
 <script lang="ts">
-    import '$lib/global.css';
     import * as ace from 'brace';
+    import type { Editor, Position } from 'brace';
     import 'brace/keybinding/vim';
     import 'brace/mode/text';
     import { onDestroy, onMount } from 'svelte';
-    import EditorToolbar from './EditorToolbar.svelte';
-    import EditorStdout from './EditorStdout.svelte';
-    import Debugger from './Debugger.svelte';
-    import { manager } from '$lib/stores/editor';
+    import { interpreter, debuggerInstance } from '$lib/stores';
+    import Brainfuck from '$lib/brainfuck';
+
+    function setBreakpoint(event: {
+        domEvent: MouseEvent;
+        editor: Editor;
+        getDocumentPosition: () => Position;
+        stop: () => void;
+    }) {
+        const editor = event.editor;
+        const session = editor.session;
+        if (editor.getReadOnly()) {
+            return;
+        }
+        const { row } = event.getDocumentPosition();
+        const breakpoints = session.getBreakpoints();
+
+        if (!breakpoints[row]) {
+            // @ts-expect-error className should be optional
+            session.setBreakpoint(row);
+        } else {
+            session.clearBreakpoint(row);
+        }
+
+        // meh dont want to shuffle arrays today ^^
+        $debuggerInstance.breakpoints = [];
+        for (const i in breakpoints) {
+            const breakpoint = Number(i);
+            if (breakpoints[breakpoint] !== undefined) {
+                $debuggerInstance.breakpoints.push(breakpoint);
+            }
+        }
+        event.stop();
+    }
+
 
     let editorEl: HTMLDivElement | null = null;
     onMount(() => {
         if (!editorEl) {
             return;
         }
-        $manager.editor = ace.edit(editorEl);
-        $manager.editor = ace.edit(editorEl);
-        $manager.editor.setHighlightActiveLine(true);
-        $manager.editor.setOption('autoScrollEditorIntoView', true);
-        $manager.editor.setOption('copyWithEmptySelection', true);
-        $manager.editor.setShowPrintMargin(false);
-        $manager.editor.setKeyboardHandler('ace/keyboard/vim');
+        const editor = ace.edit(editorEl);
+        editor.setHighlightActiveLine(true);
+        editor.setOption('autoScrollEditorIntoView', true);
+        editor.setShowPrintMargin(true);
+        editor.setKeyboardHandler('ace/keyboard/vim');
+        editor.setValue('+++\n' + '.+\n' + '++--\n');
 
-        // TODO: Example Programs Dropdown
-        // $editor.setValue(
-        //     'Hello World!\\n in Brainfuck\n\n' +
-        //         '++++++++[>++++[>++>+++>+++>+<<<<-]\n' +
-        //         '>+>+>->>+\n' +
-        //         '[<]<-]\n' +
-        //         '>>.>---.+++++++..\n' +
-        //         '+++.>>.<-.<.+++.------.--------.>>+.>++\n' +
-        //         '\n. print last newline'
-        // );
-        $manager.editor.setValue('+++\n' + '.+\n' + '++--\n');
-
-        // TODO: write a brainfuck mode
-        const session = $manager.editor.getSession();
+        const session = editor.getSession();
         session.setMode('ace/mode/text');
         session.setTabSize(4);
         session.setUseWrapMode(true);
+
+        editor.on('guttermousedown', setBreakpoint);
+
+        $debuggerInstance.editor = editor;
+
+        const brainfuck = new Brainfuck();
+        $interpreter = brainfuck;
+        $debuggerInstance.bf = brainfuck;
     });
 
     onDestroy(() => {
-        // TODO: would it make sense to have a destroy on the manager?
-        if ($manager.editor) {
-            $manager.editor.destroy();
-            $manager.editor.container.remove();
+        if ($debuggerInstance.editor) {
+            $debuggerInstance.editor.destroy();
+            $debuggerInstance.editor.container.remove();
         }
     });
 </script>
 
-<div class="editor">
-    <div class="box flex edit" bind:this={editorEl} />
-    <EditorStdout />
-</div>
-<aside>
-    <EditorToolbar />
-    <Debugger />
-</aside>
+<div class="editor" bind:this={editorEl} />
 
 <style>
-    .edit {
-        height: 585px;
-        margin-right: 0px;
+    .editor {
+        height: 100%;
+        border-right: 1px solid #bbb;
     }
 </style>

@@ -84,10 +84,10 @@ export class BrainfuckDebugger {
     private debugging: boolean = false;
     private current: number = -1;
     breakpoints: number[];
-    bf: Brainfuck;
+    bf: Brainfuck | null;
     editor: Editor | null;
 
-    constructor(bf: Brainfuck, editor: Editor | null, breakpoints: number[]) {
+    constructor(bf: Brainfuck|null, editor: Editor | null, breakpoints: number[]) {
         this.bf = bf;
         this.editor = editor;
         this.breakpoints = breakpoints;
@@ -98,8 +98,8 @@ export class BrainfuckDebugger {
         }
         // TODO: clear stdout
         // this.stdout.clear();
-        this.bf.resetTape();
-        this.bf.evaluate(this.editor.getValue());
+        this.bf?.resetTape();
+        this.bf?.evaluate(this.editor.getValue());
     }
 
     enable() {
@@ -110,7 +110,7 @@ export class BrainfuckDebugger {
         console.log('[manager/enable]: ', this);
         this.editor.moveCursorTo(0, 0, true);
         this.editor.setReadOnly(true);
-        this.bf.resetTape();
+        this.bf?.resetTape();
     }
 
     isEnabled() {
@@ -196,7 +196,7 @@ export class BrainfuckDebugger {
         const char = line?.at(this.col);
         console.log('[manager/stepnext]: ', char);
         if (char) {
-            this.bf.evaluate(char);
+            this.bf?.evaluate(char);
         }
     }
 

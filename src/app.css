@@ -1,0 +1,48 @@
+* {
+    margin: 0;
+    padding: 0;
+    font-family: monospace;
+    box-sizing: border-box;
+}
+
+button {
+    cursor: pointer;
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 0px;
+    width: 100%;
+    overflow: scroll;
+}
+table tr {
+    background: #eee;
+    padding: 2px;
+    border-bottom: 1px solid #aaa;
+    width: 100%;
+}
+
+table tr:hover {
+    background: #ddd;
+}
+
+table th {
+    border-right: 1px solid #aaa;
+}
+
+table tr td {
+    border-right: 1px solid #aaa;
+    text-align: left;
+    padding-right: 2px;
+}
+
+.ace_gutter-cell {
+    cursor: pointer;
+}
+
+.ace_gutter-cell:hover {
+    box-shadow: 0px 0px 2px 2px #2aaf18 inset;
+}
+.ace_gutter-cell.ace_breakpoint  {
+    box-shadow: 0px 0px 2px 2px #2aaf18 inset;
+}
